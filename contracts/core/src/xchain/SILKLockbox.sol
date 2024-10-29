@@ -27,6 +27,7 @@ contract SILKLockbox is XApp {
     );
     event FulfilledIntent(bytes32 guid, address solver);
     event CompletedIntent(bytes32 guid, address solverRecipient);
+    event CancelledIntent(bytes32 guid);
 
     struct Intent {
         bool fulfilled;
@@ -144,6 +145,7 @@ contract SILKLockbox is XApp {
     function cancelThing(bytes32 guid) external {
         // Pull state and validate caller is intent issuer and enough time has passed
         Intent memory intent = intents[guid];
+        if (intent.fulfilled) revert IntentFulfilled();
         if (intent.from != msg.sender) revert Unauthorized();
         if (intent.timestamp > block.timestamp - cancelTimeout) revert CancelTimeout();
 
@@ -160,5 +162,6 @@ contract SILKLockbox is XApp {
             (bool success,) = payable(msg.sender).call{ value: intent.payment }("");
             if (!success) revert TransferFailed();
         }
+        delete intents[guid];
     }
 }
